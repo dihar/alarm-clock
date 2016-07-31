@@ -1,0 +1,38 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+
+<!--
+
+@element alarm-list
+-->
+
+<dom-module id="alarm-list">
+	<template>
+		<style>
+			:host {
+				display: block;
+			}
+		</style>
+		<div class="wrap">
+			<paper-item>
+				<div class="item-caption">Будильник 1</div>
+			</paper-item>
+			<paper-item>
+				<div class="item-caption">Будильник 2</div>
+			</paper-item>
+			<paper-item>
+				<div class="item-caption">Будильник 3</div>
+			</paper-item>
+		</div>
+	</template>
+	<script>
+		(function() {
+			'use strict';
+
+			Polymer({
+				is: 'alarm-list'
+			});
+		})();
+	</script>
+</dom-module>
