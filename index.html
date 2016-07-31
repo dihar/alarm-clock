@@ -2,18 +2,51 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>Alarm Clock!</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <link rel="import" href="elements/alarm-app.html" async>
+    <link rel="stylesheet" href="bower_components/material-design-preloader/md-preloader.min.css">
+    <style>
+      body {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+      .md-preloader{
+        position: fixed;
+        top: calc(50% - 37.5px);
+        left: calc(50% - 37.5px);
+        opacity: 0;
+        transition: opacity .5s ease;
+      }
+      body[unresolved] alarm-app{
+        opacity: 0;
+      }
+      alarm-app{
+        transition: opacity .5s ease;
+      }
+      body[unresolved] .md-preloader{
+        opacity: 1;
+      }
+    </style>
+
   </head>
-  <body>
-    <h1>Hello World!</h1>
-    <!-- All of the Node.js APIs are available in this renderer process. -->
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chromium <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+  <body unresolved>
+
+    <div class="md-preloader"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="75" width="75" viewbox="0 0 75 75"><circle cx="37.5" cy="37.5" r="33.5" stroke-width="8"/></svg></div>
+
+    <script>
+      var Polymer = {lazyRegister: true, dom: 'shadow'};
+    </script>
+
+    <alarm-app></alarm-app>
+
   </body>
 
   <script>
     // You can also require other files to run in this process
-    require('./renderer.js')
+    require('./renderer.js');
   </script>
 </html>

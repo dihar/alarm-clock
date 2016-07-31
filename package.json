@@ -1,14 +1,14 @@
 {
-  "name": "electron-quick-start",
+  "name": "alarm clock",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "simple alarm clock for desctop",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/electron/electron-quick-start.git"
+    "url": "git+https://github.com/dihar/alarm-clock.git"
   },
   "keywords": [
     "Electron",
@@ -16,11 +16,8 @@
     "start",
     "tutorial"
   ],
-  "author": "GitHub",
+  "author": "Dihar",
   "license": "CC0-1.0",
-  "bugs": {
-    "url": "https://github.com/electron/electron-quick-start/issues"
-  },
   "homepage": "https://github.com/electron/electron-quick-start#readme",
   "devDependencies": {
     "electron-prebuilt": "^1.2.0"

@@ -1,0 +1,28 @@
+{
+  "name": "alarm",
+  "description": "alarm clock",
+  "main": "main.js",
+  "authors": [
+    "dihar"
+  ],
+  "license": "CC0-1.0",
+  "keywords": [
+    "alarm",
+    "Electron",
+    "clock"
+  ],
+  "homepage": "no",
+  "moduleType": [],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "^1.6.0",
+    "app-layout": "PolymerElements/app-layout#^0.10.1",
+    "material-design-preloader": "^1.1.1"
+  }
+}
