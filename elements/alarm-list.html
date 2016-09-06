@@ -1,6 +1,12 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
 
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-icons/maps-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 
 <!--
 
@@ -13,17 +19,39 @@
 			:host {
 				display: block;
 			}
+			paper-item{
+				display: flex;
+				justify-content: space-between;
+				transition: transform 0.3s ease-out;
+			}
+			paper-item.checked{
+				background: rgba(63, 81, 181, 0.1);
+			}
+			.item-checkbox{
+				cursor: pointer;
+			}
+			.item-caption{
+				flex: 0 0 200px;
+			}
+			.item-date{
+				text-align: left;
+				flex: 1 1 100%;
+			}
+			.remove-button{
+				width: 60px;
+				height: 50px;
+				color: red;
+			}
 		</style>
 		<div class="wrap">
-			<paper-item>
-				<div class="item-caption">Будильник 1</div>
-			</paper-item>
-			<paper-item>
-				<div class="item-caption">Будильник 2</div>
-			</paper-item>
-			<paper-item>
-				<div class="item-caption">Будильник 3</div>
-			</paper-item>
+			<template is="dom-repeat" items="{{alarms}}">
+				<paper-item id$="alarm{{item.id}}" class$="{{_computeItemClass(item.checked)}}">
+					<div class="item-caption">{{item.caption}}</div>
+					<div class="item-date">{{item.time}}</div>
+					<paper-toggle-button checked={{item.checked}} class="item-checkbox"></paper-toggle-button>
+					<paper-icon-button class="remove-button" icon="remove-circle-outline" on-tap="removeAlarm"></paper-icon-button>
+				</paper-item>
+			</template>
 		</div>
 	</template>
 	<script>
@@ -31,7 +59,23 @@
 			'use strict';
 
 			Polymer({
-				is: 'alarm-list'
+				is: 'alarm-list',
+				properties: {
+					alarms: Array
+				},
+				_computeItemClass(checked){
+					return checked ? 'checked' : '';
+				},
+				removeAlarm(event){
+					var index = this.alarms.indexOf(event.model.item);
+					var id = event.model.item.id;
+					if(index !== -1){
+						this.$$('#alarm'+id).style.transform = 'translate(100%, 0)';
+						this.async(()=>{
+							this.splice('alarms', index, 1);
+						}, 300)
+					}
+				}
 			});
 		})();
 	</script>

@@ -11,10 +11,10 @@
     <style>
       body {
         margin: 0;
-        font-size: 16px;
+        font-size: 18px;
         line-height: 1.5;
         min-height: 100vh;
-        background: #fefefe;
+        background: #ddd;
         min-width: 500px;
       }
       .md-preloader{
@@ -26,12 +26,18 @@
       }
       body[unresolved] alarm-app{
         opacity: 0;
+        transform: translate(100%, 0);
       }
       alarm-app{
-        transition: opacity .5s ease;
+        transition: opacity .4s ease, transform .5s ease-out;
+        box-shadow: 0 0 5px 0 rgba(100, 100, 100, 0.5);
       }
       body[unresolved] .md-preloader{
         opacity: 1;
+      }
+      .app-layout{
+        width: 100%;
+        overflow: hidden;
       }
     </style>
 
@@ -44,7 +50,9 @@
       var Polymer = {lazyRegister: true, dom: 'shadow'};
     </script>
 
-    <alarm-app></alarm-app>
+    <div class="app-layout">
+      <alarm-app></alarm-app>
+    </div>
 
   </body>
 

@@ -5,6 +5,15 @@
 <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../bower_components/iron-icons/maps-icons.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
+<link rel="import" href="../bower_components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../bower_components/neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../bower_components/paper-time-picker/paper-time-picker.html">
+
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 
 <link rel="import" href="./styles.html">
 <link rel="import" href="./alarm-list.html">
@@ -19,25 +28,257 @@
 		<style include="shared-styles">
 			:host {
 				display: block;
+				max-width: 700px;
+				margin: auto;
+				background: #fefefe;
+			}
+			.new-alarm .time{
+				margin: 20px 0;
+				cursor: pointer;
+				font-size: 20px;
+			}
+			.new-alarm .time:hover{
+				color: #3f51b5;
+			}
+			.alarm-area{
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				text-align: center;
+				background: #fff;
+			}
+			.alarm-area-title{
+				animation: blink 0.5s infinite;
+			}
+			app-toolbar paper-icon-button{
+				transition: transform 0.3s ease;
+			}
+			app-toolbar paper-icon-button:hover{
+				transform: rotate(360deg);
+			}
+			paper-dialog{
+				min-width: 500px;
+			}
+			@keyframes blink{
+				50%{
+					opacity: 0;
+				}
 			}
 		</style>
 		<app-toolbar>
 			<div main-title>Alarm clock</div>
-			<!-- <div spacer></div> -->
-			<paper-icon-button icon="add"></paper-icon-button>
+			<paper-icon-button icon="settings"></paper-icon-button>
+			<paper-icon-button icon="alarm-add" on-tap="openAdd"></paper-icon-button>
 		</app-toolbar>
-		<alarm-list>
-			
-		</alarm-list>
+		<alarm-list alarms="{{alarms}}"></alarm-list>
+		<app-localstorage-document key="alarms" data="{{alarms}}">
+		</app-localstorage-document>
+		<paper-dialog id="addNewAlarm"
+			modal on-iron-overlay-closed="dismissAlarmDialog"
+			entry-animation="scale-up-animation"
+            exit-animation="fade-out-animation">
+			<h2>Add new alarm</h2>
+
+			<form is="iron-form" id="addForm" class="new-alarm">
+				<paper-input stopKeyboardEventPropagation 
+					id="newCaption" 
+					label="Caption" 
+					value="{{newAlarm.caption}}"></paper-input>
+				<div class="time" on-tap="openTimePicker">Time: {{newAlarm.time}}</div>
+			</form>
+
+			<div class="buttons">
+			    <paper-button dialog-dismiss>Cancel</paper-button>
+			    <paper-button dialog-confirm>Awake me!</paper-button>
+			</div>
+
+			<paper-dialog id="addTime" class="paper-time-picker-dialog" on-iron-overlay-closed="dismissTimeDialog">
+				<paper-time-picker animate id="timePicker" time="{{newAlarm.time}}"></paper-time-picker>
+				<div class="buttons">
+					<paper-button dialog-dismiss>Cancel</paper-button>
+					<paper-button dialog-confirm>OK</paper-button>
+				</div>
+			</paper-dialog>
+		</paper-dialog>
+		<div class="alarm-area" hidden={{!isAlarming}}>
+			<h2 class="alarm-area-title">{{activeAlarm.caption}}</h2>
+			<h3 class="alarm-area-title">Now {{activeAlarm.time}}</h3>
+			<div class="alarm-area-img">
+				<img src="../imgs/alarm.gif">
+			</div>
+			<paper-button on-tap="turnOff">Ok, I woke up!</paper-button>
+		</div>
+		<audio loop id="player" src$="{{settings.audio}}"></audio>
 	</template>
 	<script>
 		(function() {
 			'use strict';
 
+
+			function parseTime(timeStr, dt) {
+			    if (!dt) {
+			        dt = new Date();
+			    }
+			 	var now = new Date();
+			    var time = timeStr.match(/(\d+)(?::(\d\d))?\s*(p?)/i);
+			    if (!time) {
+			        return NaN;
+			    }
+			    var hours = parseInt(time[1], 10);
+			    if (hours == 12 && !time[3]) {
+			        hours = 0;
+			    }
+			    else {
+			        hours += (hours < 12 && time[3]) ? 12 : 0;
+			    }
+			 
+			    dt.setHours(hours);
+			    dt.setMinutes(parseInt(time[2], 10) || 0);
+			    dt.setSeconds(0, 0);
+
+			    if(now > dt){
+			    	dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1, dt.getHours(), dt.getMinutes(), dt.getSeconds());
+			    }
+
+			    return dt;
+			}
+
 			Polymer({
 				is: 'alarm-app',
-				ready: function(){
+				properties: {
+					newAlarm: {
+						type: Object,
+						value: ()=>{
+							return {
+								time: '0:00 AM',
+								caption: 'alarm1',
+								checked: true,
+								id: 0
+							}
+						}
+					},
+					alarms: {
+						type: Array,
+						value: ()=>{
+							return [];
+						},
+						observer: 'updateNextTime'
+					},
+					nextTime: Object,
+					maxId: Number,
+					isAlarming: {
+						type: Boolean,
+						value: false
+					},
+					activeAlarm: Object,
+					player: Object,
+					settings: {
+						type: Object,
+						value: ()=>{
+							return {
+								audio: './default.mp3'
+							}
+						}
+					}
+				},
+				ready(){
 					this.fire('resolve');
+				},
+				attached(){
+					this.player = this.$.player;
+					this.tick();
+				},
+				openAdd(){
+					this.$.addNewAlarm.open();
+				},
+				openTimePicker(){
+					this.$.addTime.open();
+				},
+				dismissTimeDialog(event){
+					if (event.detail.confirmed) {
+						event.stopPropagation();
+				    	this.newAlarm.time = this.$.timePicker.time;
+				    }
+				},
+				dismissAlarmDialog(event){
+					if (event.detail.confirmed) {
+				    	this.set('newAlarm', {
+				    		time: this.newAlarm.time,
+				    		id: this.getMaxId(),
+				    		caption: this.newAlarm.caption,
+				    		checked: true
+				    	});
+				    	this.push('alarms', this.newAlarm);
+				    	this.updateNextTime();
+				    }
+				},
+				tick(){
+					this.async(()=>{
+						var now = new Date();
+						if(!!this.nextTime && this.nextTime.time < now && !this.isAlarming){
+							this.alarm(this.getAlarmById(this.nextTime.id));
+							this.updateNextTime();
+						} 
+						this.tick();
+					}, 1000)
+				},
+				getAlarmById(id){
+					id = parseInt(id);
+					return this.alarms.find((alarm, i)=>{
+						return parseInt(alarm.id) === id;
+					});
+				},
+				getMaxId(){
+					this.set('maxId', this.maxId + 1);
+					return this.maxId + 0;
+				},
+				updateNextTime(){
+					this.maxId = 1;
+					this.nextTime = null;
+					this.alarms.forEach((el)=>{
+						if(this.maxId < (parseInt(el.id) || this.maxId - 1)){
+							this.maxId = parseInt(el.id) || 1;
+						}
+						if(el.checked){
+							if(!this.nextTime || !this.nextTime.time){
+								this.nextTime = {
+									time: parseTime(el.time),
+									id: el.id 
+								};
+								return false;
+							}
+							if(this.nextTime.time > parseTime(el.time)){
+								this.nextTime = {
+									time: parseTime(el.time),
+									id: el.id 
+								};
+							}
+						}
+					});
+				},
+				alarm(alarm){
+					this.set('activeAlarm', {
+						caption: alarm.caption,
+						time: alarm.time
+					});
+					this.isAlarming = true;
+					if(this.player){
+						this.player.play();
+					}
+					var index = this.alarms.indexOf(alarm);
+					if(index !== -1){
+						this.set(['alarms', index, 'checked'], false)
+					}
+				},
+				turnOff(){
+					if(this.player){
+						this.player.pause();
+						this.player.currentTime = 0;
+					}
+					this.isAlarming = false;
+					this.updateNextTime();
 				}
 			});
 		})();
