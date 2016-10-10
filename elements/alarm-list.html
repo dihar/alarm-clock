@@ -45,9 +45,10 @@
 		</style>
 		<div class="wrap">
 			<template is="dom-repeat" items="{{alarms}}">
-				<paper-item id$="alarm{{item.id}}" class$="{{_computeItemClass(item.checked)}}">
+				<paper-item id$="alarm{{item.id}}" class$="{{_computeItemClass(item.checked)}}" on-dblclick="editAlarm">
 					<div class="item-caption">{{item.caption}}</div>
 					<div class="item-date">{{item.time}}</div>
+					<div>{{item.id}}</div>
 					<paper-toggle-button checked={{item.checked}} class="item-checkbox"></paper-toggle-button>
 					<paper-icon-button class="remove-button" icon="remove-circle-outline" on-tap="removeAlarm"></paper-icon-button>
 				</paper-item>
@@ -75,6 +76,9 @@
 							this.splice('alarms', index, 1);
 						}, 300)
 					}
+				},
+				editAlarm(event){
+					this.fire('edit-alarm', event.model.item.id);
 				}
 			});
 		})();

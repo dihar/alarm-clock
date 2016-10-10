@@ -17,6 +17,8 @@
 
 <link rel="import" href="./styles.html">
 <link rel="import" href="./alarm-list.html">
+<link rel="import" href="./moment-js.html">
+
 <!--
 
 @element alarm-app
@@ -67,14 +69,17 @@
 				}
 			}
 		</style>
+
 		<app-toolbar>
 			<div main-title>Alarm clock</div>
 			<paper-icon-button icon="settings"></paper-icon-button>
 			<paper-icon-button icon="alarm-add" on-tap="openAdd"></paper-icon-button>
 		</app-toolbar>
+
 		<alarm-list alarms="{{alarms}}"></alarm-list>
 		<app-localstorage-document key="alarms" data="{{alarms}}">
 		</app-localstorage-document>
+
 		<paper-dialog id="addNewAlarm"
 			modal on-iron-overlay-closed="dismissAlarmDialog"
 			entry-animation="scale-up-animation"
@@ -102,6 +107,7 @@
 				</div>
 			</paper-dialog>
 		</paper-dialog>
+
 		<div class="alarm-area" hidden={{!isAlarming}}>
 			<h2 class="alarm-area-title">{{activeAlarm.caption}}</h2>
 			<h3 class="alarm-area-title">Now {{activeAlarm.time}}</h3>
@@ -110,6 +116,7 @@
 			</div>
 			<paper-button on-tap="turnOff">Ok, I woke up!</paper-button>
 		</div>
+
 		<audio loop id="player" src$="{{settings.audio}}"></audio>
 	</template>
 	<script>
@@ -118,31 +125,23 @@
 
 
 			function parseTime(timeStr, dt) {
-			    if (!dt) {
-			        dt = new Date();
-			    }
-			 	var now = new Date();
-			    var time = timeStr.match(/(\d+)(?::(\d\d))?\s*(p?)/i);
-			    if (!time) {
-			        return NaN;
-			    }
-			    var hours = parseInt(time[1], 10);
-			    if (hours == 12 && !time[3]) {
-			        hours = 0;
-			    }
-			    else {
-			        hours += (hours < 12 && time[3]) ? 12 : 0;
-			    }
-			 
-			    dt.setHours(hours);
-			    dt.setMinutes(parseInt(time[2], 10) || 0);
-			    dt.setSeconds(0, 0);
+				var time = moment(timeStr, 'hh:mm a');
+				if(!time.isAfter(moment())){
+					time.add(1, 'days');
+				}
+			    return time;
+			}
 
-			    if(now > dt){
-			    	dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1, dt.getHours(), dt.getMinutes(), dt.getSeconds());
-			    }
-
-			    return dt;
+			function addVolume(player, speed){
+				var inc = speed / (100 * 5);
+				if(!player.paused && player.volume <= 1 - inc){
+					setTimeout(()=>{
+						player.volume += inc;
+						addVolume(player, speed);
+					}, 200);
+				} else {
+					player.volume = 1;
+				}
 			}
 
 			Polymer({
@@ -153,9 +152,7 @@
 						value: ()=>{
 							return {
 								time: '0:00 AM',
-								caption: 'alarm1',
-								checked: true,
-								id: 0
+								caption: 'alarm1'
 							}
 						}
 					},
@@ -178,78 +175,105 @@
 						type: Object,
 						value: ()=>{
 							return {
-								audio: './default.mp3'
+								audio: './default.mp3',
+								volumeSpeed: 5 // % in second
 							}
 						}
 					}
 				},
+
 				ready(){
 					this.fire('resolve');
+					this.listen(this.$$('alarm-list'), 'edit-alarm', 'onEditAlarm')
 				},
+
 				attached(){
 					this.player = this.$.player;
 					this.tick();
 				},
+
 				openAdd(){
 					this.$.addNewAlarm.open();
 				},
+
 				openTimePicker(){
 					this.$.addTime.open();
 				},
+
 				dismissTimeDialog(event){
 					if (event.detail.confirmed) {
 						event.stopPropagation();
 				    	this.newAlarm.time = this.$.timePicker.time;
 				    }
 				},
+
+				onEditAlarm(event, id){
+					this.set('newAlarm', this.getAlarmById(id));
+					this.$.addNewAlarm.open();
+				},
+
 				dismissAlarmDialog(event){
 					if (event.detail.confirmed) {
-				    	this.set('newAlarm', {
-				    		time: this.newAlarm.time,
-				    		id: this.getMaxId(),
-				    		caption: this.newAlarm.caption,
-				    		checked: true
-				    	});
-				    	this.push('alarms', this.newAlarm);
+				    	if(!this.newAlarm.id){
+					    	this.push('alarms', Object.assign({id: this.getMaxId(), checked: true}, this.newAlarm));
+				    	} else{
+				    		this.replaceAlaram(this.newAlarm.id, this.newAlarm);
+				    	}
 				    	this.updateNextTime();
 				    }
 				},
+
+				replaceAlaram(id, newAlarm){
+					var alarm = this.getAlarmById(id);
+					var index = this.alarms.indexOf(alarm);
+					if(index != -1){
+						this.splice('alarms', index, 1, Object.assign({}, newAlarm));
+						this.set(`alarms.${index}.checked`, true);
+						delete this.newAlarm.id;
+						delete this.newAlarm.checked	;
+					}
+				},
+
 				tick(){
 					this.async(()=>{
-						var now = new Date();
-						if(!!this.nextTime && this.nextTime.time < now && !this.isAlarming){
+						var now = moment();
+						if(!!this.nextTime && !this.nextTime.time.isAfter(now) && !this.isAlarming){
 							this.alarm(this.getAlarmById(this.nextTime.id));
 							this.updateNextTime();
-						} 
+						}
 						this.tick();
 					}, 1000)
 				},
+
 				getAlarmById(id){
 					id = parseInt(id);
 					return this.alarms.find((alarm, i)=>{
 						return parseInt(alarm.id) === id;
 					});
 				},
+
 				getMaxId(){
 					this.set('maxId', this.maxId + 1);
-					return this.maxId + 0;
+					return this.maxId;
 				},
+
 				updateNextTime(){
-					this.maxId = 1;
+					this.set('maxId', 1);
 					this.nextTime = null;
+
 					this.alarms.forEach((el)=>{
-						if(this.maxId < (parseInt(el.id) || this.maxId - 1)){
-							this.maxId = parseInt(el.id) || 1;
+						if(this.maxId < parseInt(el.id)){
+							this.maxId = parseInt(el.id);
 						}
 						if(el.checked){
-							if(!this.nextTime || !this.nextTime.time){
+							if(!this.nextTime){
 								this.nextTime = {
 									time: parseTime(el.time),
 									id: el.id 
 								};
 								return false;
 							}
-							if(this.nextTime.time > parseTime(el.time)){
+							if(this.nextTime.time.isAfter(parseTime(el.time))) {
 								this.nextTime = {
 									time: parseTime(el.time),
 									id: el.id 
@@ -258,6 +282,7 @@
 						}
 					});
 				},
+
 				alarm(alarm){
 					this.set('activeAlarm', {
 						caption: alarm.caption,
@@ -265,13 +290,16 @@
 					});
 					this.isAlarming = true;
 					if(this.player){
+						this.player.volume = 0;
 						this.player.play();
+						addVolume(this.player, this.settings.volumeSpeed);
 					}
 					var index = this.alarms.indexOf(alarm);
 					if(index !== -1){
 						this.set(['alarms', index, 'checked'], false)
 					}
 				},
+
 				turnOff(){
 					if(this.player){
 						this.player.pause();

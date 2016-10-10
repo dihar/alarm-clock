@@ -1,10 +1,11 @@
 {
-  "name": "alarm clock",
+  "name": "alarm-clock",
   "version": "1.0.0",
   "description": "simple alarm clock for desctop",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build:win": "build --win"
   },
   "repository": {
     "type": "git",
@@ -21,5 +22,9 @@
   "homepage": "https://github.com/electron/electron-quick-start#readme",
   "devDependencies": {
     "electron-prebuilt": "^1.2.0"
+  },
+  "build": {
+    "appId": "alarm-clock",
+    "category": "lifestyle"
   }
 }
